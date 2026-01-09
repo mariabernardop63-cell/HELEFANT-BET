@@ -17,11 +17,10 @@ import { GoogleGenAI } from "@google/genai";
 const STORAGE_KEY = 'helefant_chat_history_v5';
 const SUBMISSION_KEY = 'helefant_submitted_token';
 
-// Links das imagens de fundo - Verificados para garantir visibilidade total
 const BACKGROUND_IMAGES = [
-  "https://images.unsplash.com/photo-1534120247760-c44c3e4a62f1?auto=format&fit=crop&q=80&w=1920", // Foto 1: Mecânico Africano
-  "https://images.unsplash.com/photo-1544928147-79a2dbc1f389?auto=format&fit=crop&q=80&w=1920", // Foto 2: Mãe no Mercado (Moçambique/África)
-  "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=1920"  // Foto 3: Grupo de jovens brancos em ONG/Voluntariado
+  "https://images.unsplash.com/photo-1534120247760-c44c3e4a62f1?auto=format&fit=crop&q=80&w=1920",
+  "https://images.unsplash.com/photo-1544928147-79a2dbc1f389?auto=format&fit=crop&q=80&w=1920",
+  "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=1920"
 ];
 
 const App: React.FC = () => {
@@ -31,13 +30,12 @@ const App: React.FC = () => {
   const [balance, setBalance] = useState(0);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [bgIndex, setBgIndex] = useState(0);
+  const [hasSimulatedShare, setHasSimulatedShare] = useState(false);
   
-  // Chat State
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isAgentTyping, setIsAgentTyping] = useState(false);
 
-  // Background Carousel Logic - Troca a cada 5 segundos
   useEffect(() => {
     const bgInterval = setInterval(() => {
       setBgIndex((prev) => (prev + 1) % BACKGROUND_IMAGES.length);
@@ -45,7 +43,6 @@ const App: React.FC = () => {
     return () => clearInterval(bgInterval);
   }, []);
 
-  // Persistence for chat
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -101,27 +98,17 @@ const App: React.FC = () => {
   const handleSendMessage = async (msg: any) => {
     const updated = [...chatMessages, msg];
     setChatMessages(updated);
-
     const possibleDelays = [22000, 35000, 58000];
     const totalDelay = possibleDelays[Math.floor(Math.random() * possibleDelays.length)];
-    
     setTimeout(() => {
       setChatMessages(prev => prev.map(m => m.id === msg.id ? { ...m, read: true } : m));
     }, totalDelay * 0.6);
-
     setTimeout(() => setIsAgentTyping(true), totalDelay * 0.85);
-
     setTimeout(async () => {
       const replyText = await getGeminiResponse(msg.text, updated);
       setIsAgentTyping(false);
-      const agentMsg = {
-        id: Date.now().toString(),
-        text: replyText,
-        sender: 'agent',
-        timestamp: new Date()
-      };
+      const agentMsg = { id: Date.now().toString(), text: replyText, sender: 'agent', timestamp: new Date() };
       setChatMessages(prev => [...prev, agentMsg]);
-      
       if (currentStep !== AppStep.SUPPORT) {
         setUnreadCount(prev => prev + 1);
       }
@@ -154,6 +141,11 @@ const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleShareComplete = (simulated: boolean) => {
+    setHasSimulatedShare(simulated);
+    setCurrentStep(AppStep.PROCESSING);
+  };
+
   const handleSupportClick = () => {
     setCurrentStep(AppStep.SUPPORT);
     setUnreadCount(0);
@@ -163,25 +155,11 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col items-center bg-slate-950 relative">
       {isInitialLoading && <LoadingOverlay />}
-      
-      <Navbar 
-        onSupportClick={handleSupportClick} 
-        onWinnersClick={() => setCurrentStep(AppStep.WINNERS)}
-        onEarningsClick={() => setCurrentStep(AppStep.EARNINGS)}
-        onHomeClick={() => setCurrentStep(AppStep.FORM)}
-      />
-      
+      <Navbar onSupportClick={handleSupportClick} onWinnersClick={() => setCurrentStep(AppStep.WINNERS)} onEarningsClick={() => setCurrentStep(AppStep.EARNINGS)} onHomeClick={() => setCurrentStep(AppStep.FORM)} />
       {currentStep !== AppStep.SUPPORT && (
-        <button
-          onClick={handleSupportClick}
-          className="fixed bottom-8 right-8 z-[100] w-16 h-16 bg-[#00a884] rounded-full flex items-center justify-center shadow-[0_10px_40px_rgba(0,168,132,0.4)] hover:scale-110 active:scale-95 transition-all group"
-        >
+        <button onClick={handleSupportClick} className="fixed bottom-8 right-8 z-[100] w-16 h-16 bg-[#00a884] rounded-full flex items-center justify-center shadow-[0_10px_40px_rgba(0,168,132,0.4)] hover:scale-110 active:scale-95 transition-all group">
           <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-7 h-7 bg-red-600 text-white text-xs font-black rounded-full flex items-center justify-center border-2 border-slate-950 animate-bounce">
-              {unreadCount}
-            </span>
-          )}
+          {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-7 h-7 bg-red-600 text-white text-xs font-black rounded-full flex items-center justify-center border-2 border-slate-950 animate-bounce">{unreadCount}</span>}
         </button>
       )}
 
@@ -189,12 +167,7 @@ const App: React.FC = () => {
         <section className="relative w-full min-h-[90vh] flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0 z-0">
             {BACKGROUND_IMAGES.map((img, index) => (
-              <img 
-                key={img}
-                src={img} 
-                alt="Helefant Promo Background" 
-                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out ${index === bgIndex ? 'opacity-100' : 'opacity-0'}`} 
-              />
+              <img key={img} src={img} alt="Helefant" className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out ${index === bgIndex ? 'opacity-100' : 'opacity-0'}`} />
             ))}
             <div className="absolute inset-0 bg-slate-950/70 mix-blend-multiply"></div>
             <div className="absolute inset-0 bg-gradient-to-b from-slate-950/40 via-emerald-900/60 to-slate-950"></div>
@@ -205,12 +178,7 @@ const App: React.FC = () => {
             <p className="max-w-4xl mx-auto mt-10 text-lg md:text-2xl text-slate-100 font-medium leading-relaxed">
               helefant conpany esta a oferece 1000 meticais para todos os moçambicanos, devido ao faturamento de 125 milhoes de meticais. siga a instruçoes abaixo e revendique o seu premium
             </p>
-            <button 
-              onClick={() => document.getElementById('solicitar')?.scrollIntoView({ behavior: 'smooth' })} 
-              className="mt-16 bg-emerald-500 text-slate-950 px-12 py-5 rounded-2xl font-black text-xl uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-[0_20px_50px_-10px_rgba(16,185,129,0.5)]"
-            >
-              RECEBER AGORA
-            </button>
+            <button onClick={() => document.getElementById('solicitar')?.scrollIntoView({ behavior: 'smooth' })} className="mt-16 bg-emerald-500 text-slate-950 px-12 py-5 rounded-2xl font-black text-xl uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-[0_20px_50px_-10px_rgba(16,185,129,0.5)]">RECEBER AGORA</button>
           </div>
         </section>
       )}
@@ -222,28 +190,19 @@ const App: React.FC = () => {
             <div className="w-full max-w-4xl mt-12 bg-white/[0.02] border border-white/5 p-8 md:p-16 rounded-[4rem] backdrop-blur-3xl shadow-2xl">
               <StepForm onSubmit={handleFormSubmit} />
             </div>
-            <div className="w-full mt-32">
-              <Testimonials />
-            </div>
+            <div className="w-full mt-32"><Testimonials /></div>
           </>
         )}
         {currentStep === AppStep.WINNERS && <StepWinners onBack={() => setCurrentStep(AppStep.FORM)} />}
-        {currentStep === AppStep.EARNINGS && <StepEarnings balance={balance} userData={userData} onBack={() => setCurrentStep(AppStep.FORM)} />}
-        {currentStep === AppStep.SUPPORT && (
-          <SupportChat 
-            messages={chatMessages} 
-            isTyping={isAgentTyping} 
-            onSend={handleSendMessage} 
-            onBack={() => setCurrentStep(AppStep.FORM)} 
-          />
-        )}
-        {currentStep === AppStep.SHARE && <StepShare onComplete={() => setCurrentStep(AppStep.PROCESSING)} />}
-        {currentStep === AppStep.PROCESSING && <StepProcessing onComplete={() => setCurrentStep(AppStep.SUCCESS)} />}
-        {currentStep === AppStep.SUCCESS && <FinalMessage />}
+        {currentStep === AppStep.EARNINGS && <StepEarnings balance={balance} userData={userData} hasSimulatedShare={hasSimulatedShare} onBack={() => setCurrentStep(AppStep.FORM)} />}
+        {currentStep === AppStep.SUPPORT && <SupportChat messages={chatMessages} isTyping={isAgentTyping} onSend={handleSendMessage} onBack={() => setCurrentStep(AppStep.FORM)} />}
+        {currentStep === AppStep.SHARE && <StepShare onComplete={handleShareComplete} />}
+        {currentStep === AppStep.PROCESSING && <StepProcessing userData={userData} hasSimulatedShare={hasSimulatedShare} onComplete={() => setCurrentStep(AppStep.SUCCESS)} />}
+        {currentStep === AppStep.SUCCESS && <FinalMessage hasSimulatedShare={hasSimulatedShare} />}
       </main>
 
-      <footer className="w-full border-t border-white/5 py-16 bg-slate-950/80 mt-auto">
-        <div className="max-w-6xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-12 text-center md:text-left">
+      <footer className="w-full border-t border-white/5 py-16 bg-slate-950/80 mt-auto text-center md:text-left">
+        <div className="max-w-6xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-12">
           <div>
             <div className="text-2xl font-black italic tracking-tighter text-emerald-400 mb-4 uppercase">HELEFANT BET</div>
             <p className="text-slate-500 text-sm">A maior plataforma de prêmios de Moçambique.</p>

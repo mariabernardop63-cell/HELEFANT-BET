@@ -8,6 +8,8 @@ interface Props {
 }
 
 const SUBMISSION_KEY = 'helefant_submitted_token';
+const VALID_PROCEED_PREFIXES = ['84', '85', '86', '87'];
+const MKESH_PREFIXES = ['82', '83'];
 
 const StepForm: React.FC<Props> = ({ onSubmit }) => {
   const [form, setForm] = useState<UserData>({
@@ -22,7 +24,7 @@ const StepForm: React.FC<Props> = ({ onSubmit }) => {
   const [errors, setErrors] = useState<string>('');
 
   const handlePhoneChange = (val: string, field: 'phonePrimary' | 'phoneSecondary') => {
-    // Only numbers allowed, max 9 digits
+    // Apenas números, max 9 dígitos
     const cleaned = val.replace(/\D/g, '').slice(0, 9);
     setForm(prev => ({ ...prev, [field]: cleaned }));
   };
@@ -30,7 +32,7 @@ const StepForm: React.FC<Props> = ({ onSubmit }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Check for previous submission
+    // Verificação de submissão prévia
     const alreadySubmitted = localStorage.getItem(SUBMISSION_KEY);
     if (alreadySubmitted === 'true') {
       setErrors('so é valido em uma tentativa');
@@ -47,13 +49,27 @@ const StepForm: React.FC<Props> = ({ onSubmit }) => {
       return;
     }
 
-    if (form.phonePrimary !== form.phoneSecondary) {
-      setErrors('Os números de celular digitados não são idênticos. Verifique novamente.');
+    const prefix = form.phonePrimary.substring(0, 2);
+    
+    // Regra: 82, 83 mostra erro impeditivo de mKesh
+    if (MKESH_PREFIXES.includes(prefix)) {
+      setErrors('NÃO FAZEMOS TRASFERENCIAS PARA MKESH, TENTE OUTRO NUMERO');
       return;
     }
 
-    setErrors('');
-    onSubmit(form);
+    // Regra: 84, 85, 86, 87 são válidos para prosseguir
+    if (VALID_PROCEED_PREFIXES.includes(prefix)) {
+      if (form.phonePrimary !== form.phoneSecondary) {
+        setErrors('Os números de celular digitados não são idênticos. Verifique novamente.');
+        return;
+      }
+      setErrors('');
+      onSubmit(form);
+      return;
+    }
+
+    // Qualquer outro prefixo (não sendo 84, 85, 86, 87, 82 ou 83) é incorrecto
+    setErrors('O número inserido é incorrecto.');
   };
 
   const inputClasses = "w-full bg-slate-900 border border-white/10 rounded-2xl px-8 py-5 text-base focus:border-emerald-500/50 focus:bg-slate-800 outline-none transition-all input-glow text-white placeholder:text-slate-600 font-medium";

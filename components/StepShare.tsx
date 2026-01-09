@@ -1,40 +1,61 @@
+
 import React, { useState } from 'react';
 
 interface Props {
-  onComplete: () => void;
+  onComplete: (simulated: boolean) => void;
 }
 
 const StepShare: React.FC<Props> = ({ onComplete }) => {
   const [progress, setProgress] = useState(0);
   const [groupInvites, setGroupInvites] = useState(0);
   const [friendInvites, setFriendInvites] = useState(0);
+  const [showBanError, setShowBanError] = useState(false);
+  const [everSimulated, setEverSimulated] = useState(false);
 
   const sharedMessage = `Não acreditei até ver com os meus próprios olhos. Há 30 minutos, recebi uma mensagem no MPesa: 1.000 Meticais foram depositados na minha conta. Sem explicação. Sem complicação. Só Clica e recebe.
 
 A Helphant Bet está a fazer algo nunca visto em Moçambique: está a dar 1.000 MT a cada cidadão. Já são mais de 10 mil pessoas confirmadas. E tu? Ainda estás a espera de quê?
 
-Este link é único. É pessoal. E expira em poucas horas. Se não fores rápido, perdes a tua vez. E não haverá segunda chance.
-
-👉 receberaminhaparte2726789sh28822.pages.dev
-
-Não é mentira. Não é sorte. É só clicar. E receber.`;
+👉 receberaminhaparte2726789sh28822.pages.dev`;
 
   const encodedMessage = encodeURIComponent(sharedMessage);
 
-  const inviteGroups = () => {
-    if (groupInvites < 5) {
-      setGroupInvites(prev => prev + 1);
-      setProgress(prev => Math.min(100, prev + 10)); 
-      window.open(`whatsapp://send?text=${encodedMessage}`, '_blank');
-    }
+  const getProgressLabel = (p: number) => {
+    if (p === 0) return "VAMOS LÁ";
+    if (p <= 20) return "QUASE LÁ";
+    if (p <= 50) return "FALTA MAIS UM POUCO";
+    if (p <= 80) return "ESTAMOS QUASE LÁ";
+    if (p < 100) return "QUASE PRONTO";
+    return "FEITO";
   };
 
-  const inviteFriends = () => {
-    if (friendInvites < 50) {
+  const handleShareClick = (type: 'group' | 'friend') => {
+    // Simula uma detecção de fraude aleatória ou se o usuário tentar avançar rápido demais sem progresso real
+    if (Math.random() < 0.15 && progress > 5) { 
+       setShowBanError(true);
+       setEverSimulated(true);
+       return;
+    }
+    
+    setShowBanError(false);
+    if (type === 'group' && groupInvites < 5) {
+      setGroupInvites(prev => prev + 1);
+      setProgress(prev => Math.min(100, prev + 10));
+      window.open(`whatsapp://send?text=${encodedMessage}`, '_blank');
+    } else if (type === 'friend' && friendInvites < 50) {
       setFriendInvites(prev => Math.min(50, prev + 10));
       setProgress(prev => Math.min(100, prev + 10));
       window.open(`whatsapp://send?text=${encodedMessage}`, '_blank');
     }
+  };
+
+  const handleRescue = () => {
+    if (progress < 100) {
+      setShowBanError(true);
+      setEverSimulated(true);
+      return;
+    }
+    onComplete(everSimulated);
   };
 
   return (
@@ -48,22 +69,36 @@ Não é mentira. Não é sorte. É só clicar. E receber.`;
           Isso ajuda a Helefant a chegar a mais moçambicanos.
         </p>
 
-        <div className="bg-red-500/10 border border-red-500/20 p-5 rounded-2xl flex items-start gap-4 text-left animate-pulse">
-          <div className="flex-shrink-0 bg-red-500 p-1.5 rounded-full text-white mt-0.5">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+        {showBanError ? (
+          <div className="bg-red-900/40 border-2 border-red-500 p-6 rounded-2xl flex items-start gap-4 text-left animate-bounce">
+            <div className="flex-shrink-0 bg-red-600 p-2 rounded-full text-white">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 9v4M12 17h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
+            </div>
+            <div>
+              <h4 className="text-red-500 font-black text-sm uppercase tracking-widest mb-1">ERRO DE SIMULAÇÃO DETECTADO</h4>
+              <p className="text-white text-[13px] font-bold leading-snug">
+                Parece que você está tentando simular o compartilhamento. <span className="text-red-400 underline uppercase">Se continuar assim, o seu número será banido permanentemente de todas as promoções Helefant Bet.</span> Complete o envio real no WhatsApp!
+              </p>
+            </div>
           </div>
-          <div>
-            <h4 className="text-red-500 font-black text-xs uppercase tracking-widest mb-1">Aviso Anti-Fraude</h4>
-            <p className="text-red-400 text-[13px] font-bold leading-snug">
-              O nosso sistema detecta simulações. Se você apenas clicar e não enviar a mensagem real para os contatos, <span className="underline decoration-red-500/40">o seu prêmio de 1000 MT será cancelado automaticamente</span>.
-            </p>
+        ) : (
+          <div className="bg-red-500/10 border border-red-500/20 p-5 rounded-2xl flex items-start gap-4 text-left">
+            <div className="flex-shrink-0 bg-red-500 p-1.5 rounded-full text-white mt-0.5">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            </div>
+            <div>
+              <h4 className="text-red-500 font-black text-xs uppercase tracking-widest mb-1">Aviso Anti-Fraude</h4>
+              <p className="text-red-400 text-[13px] font-bold leading-snug">
+                O nosso sistema detecta simulações. Se você apenas clicar e não enviar a mensagem real para os contatos, o seu prêmio será cancelado.
+              </p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="space-y-4 mb-10">
         <button
-          onClick={inviteGroups}
+          onClick={() => handleShareClick('group')}
           className="group w-full flex items-center justify-between bg-white/5 border border-white/5 hover:border-emerald-500/50 p-6 rounded-3xl transition-all"
         >
           <div className="text-left">
@@ -76,7 +111,7 @@ Não é mentira. Não é sorte. É só clicar. E receber.`;
         </button>
 
         <button
-          onClick={inviteFriends}
+          onClick={() => handleShareClick('friend')}
           className="group w-full flex items-center justify-between bg-white/5 border border-white/5 hover:border-emerald-500/50 p-6 rounded-3xl transition-all"
         >
           <div className="text-left">
@@ -91,7 +126,7 @@ Não é mentira. Não é sorte. É só clicar. E receber.`;
 
       <div className="mb-10">
         <div className="flex justify-between items-end mb-3">
-          <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Verificação de Humanidade</span>
+          <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">{getProgressLabel(progress)}</span>
           <span className="text-3xl font-black text-emerald-500 italic">{Math.floor(progress)}%</span>
         </div>
         <div className="h-4 w-full bg-slate-950 rounded-full border border-white/5 p-1">
@@ -105,12 +140,11 @@ Não é mentira. Não é sorte. É só clicar. E receber.`;
       </div>
 
       <button
-        disabled={progress < 100}
-        onClick={onComplete}
+        onClick={handleRescue}
         className={`w-full py-6 rounded-2xl font-black uppercase tracking-[0.2em] transition-all text-lg ${
           progress >= 100 
-            ? 'bg-emerald-500 text-slate-950 shadow-2xl shadow-emerald-500/30 shimmer-btn scale-105 active:scale-95' 
-            : 'bg-slate-800 text-slate-600 cursor-not-allowed opacity-50 grayscale'
+            ? 'bg-emerald-500 text-slate-950 shadow-2xl shadow-emerald-500/30 scale-105 active:scale-95' 
+            : 'bg-slate-800 text-slate-600 opacity-80'
         }`}
       >
         RESCATAR MEUS 1000 MT
