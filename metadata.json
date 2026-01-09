@@ -1,5 +1,7 @@
 {
   "name": "Helefant Bet - Prêmio 1000 MT",
   "description": "Plataforma oficial da Helefant Company para distribuição de prêmios de 1000 Meticais para cidadãos moçambicanos alusivo ao faturamento histórico.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "microphone"
+  ]
 }

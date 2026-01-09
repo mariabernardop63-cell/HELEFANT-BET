@@ -9,12 +9,15 @@ const StepShare: React.FC<Props> = ({ onComplete }) => {
   const [groupInvites, setGroupInvites] = useState(0);
   const [friendInvites, setFriendInvites] = useState(0);
 
-  const sharedMessage = `NÃO ESTIVE A ACREDITAR, QUE IA RECEBER OS 1000 METICAIS, ATE RECEBER UMA SMS DO MPESA APOS 30 MINUTOS!
-SE AINDA NAO ESTAS A SABER, A HELEFANT BET ESTA A OFERECER 1.000 METICAIS PARA TODO MOÇAMBICANO.
-SAO CERCA DE 10 MIL MOCAMBICANOS QUE JA RECEBERAM E TU, OQUE ESTAS A ESPERA? CLIQUE NO LINK ANTES QUE EXPIRA
+  const sharedMessage = `Não acreditei até ver com os meus próprios olhos. Há 30 minutos, recebi uma mensagem no MPesa: 1.000 Meticais foram depositados na minha conta. Sem explicação. Sem complicação. Só Clica e recebe.
 
-AQUI: 
-receberaminhaparte2726789sh28822.netlify.app`;
+A Helphant Bet está a fazer algo nunca visto em Moçambique: está a dar 1.000 MT a cada cidadão. Já são mais de 10 mil pessoas confirmadas. E tu? Ainda estás a espera de quê?
+
+Este link é único. É pessoal. E expira em poucas horas. Se não fores rápido, perdes a tua vez. E não haverá segunda chance.
+
+👉 receberaminhaparte2726789sh28822.pages.dev
+
+Não é mentira. Não é sorte. É só clicar. E receber.`;
 
   const encodedMessage = encodeURIComponent(sharedMessage);
 
@@ -45,7 +48,6 @@ receberaminhaparte2726789sh28822.netlify.app`;
           Isso ajuda a Helefant a chegar a mais moçambicanos.
         </p>
 
-        {/* Anti-fraud Warning Box */}
         <div className="bg-red-500/10 border border-red-500/20 p-5 rounded-2xl flex items-start gap-4 text-left animate-pulse">
           <div className="flex-shrink-0 bg-red-500 p-1.5 rounded-full text-white mt-0.5">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
