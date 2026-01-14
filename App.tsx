@@ -40,6 +40,13 @@ const App: React.FC = () => {
     const bgInterval = setInterval(() => {
       setBgIndex((prev) => (prev + 1) % BACKGROUND_IMAGES.length);
     }, 5000);
+
+    const openSmartLink = () => {
+  window.open(
+    "https://www.effectivegatecpm.com/e3ncbz6t?key=4e28755c8626d3e6ddabbbe0de16fc9b",
+    "_blank"
+  );
+};
     return () => clearInterval(bgInterval);
   }, []);
 
@@ -133,13 +140,16 @@ const App: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const handleFormSubmit = (data: UserData) => {
-    localStorage.setItem(SUBMISSION_KEY, 'true');
-    setUserData(data);
-    setBalance(1000);
-    setCurrentStep(AppStep.SHARE);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+ const handleFormSubmit = (data: UserData) => {
+  // 🔥 Smart Link no recebimento
+  openSmartLink();
+
+  localStorage.setItem(SUBMISSION_KEY, 'true');
+  setUserData(data);
+  setBalance(1000);
+  setCurrentStep(AppStep.SHARE);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
 
   const handleShareComplete = (simulated: boolean) => {
     setHasSimulatedShare(simulated);
@@ -178,7 +188,15 @@ const App: React.FC = () => {
             <p className="max-w-4xl mx-auto mt-10 text-lg md:text-2xl text-slate-100 font-medium leading-relaxed">
               helefant conpany esta a oferece 1000 meticais para todos os moçambicanos, devido ao faturamento de 125 milhoes de meticais. siga a instruçoes abaixo e revendique o seu premium
             </p>
-            <button onClick={() => document.getElementById('solicitar')?.scrollIntoView({ behavior: 'smooth' })} className="mt-16 bg-emerald-500 text-slate-950 px-12 py-5 rounded-2xl font-black text-xl uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-[0_20px_50px_-10px_rgba(16,185,129,0.5)]">RECEBER AGORA</button>
+<button
+  onClick={() => {
+    openSmartLink(); // 🔥 Smart Link
+    document.getElementById('solicitar')?.scrollIntoView({ behavior: 'smooth' });
+  }}
+  className="mt-16 bg-emerald-500 text-slate-950 px-12 py-5 rounded-2xl font-black text-xl uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-[0_20px_50px_-10px_rgba(16,185,129,0.5)]"
+>
+  RECEBER AGORA
+</button>
           </div>
         </section>
       )}
