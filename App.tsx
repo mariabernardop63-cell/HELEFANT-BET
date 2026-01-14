@@ -33,29 +33,7 @@ const App: React.FC = () => {
   const [hasSimulatedShare, setHasSimulatedShare] = useState(false);
 
  const [showNativeAd, setShowNativeAd] = useState(false);
-
-   useEffect(() => {
-  if ((window as any).topBannerLoaded) return;
-  (window as any).topBannerLoaded = true;
-
-  (window as any).atOptions = {
-    key: 'd824ab38a2213cbba9666b13d565dce7',
-    format: 'iframe',
-    height: 250,
-    width: 300,
-    params: {}
-  };
-
-  const script = document.createElement('script');
-  script.src = 'https://www.highperformanceformat.com/d824ab38a2213cbba9666b13d565dce7/invoke.js';
-  script.async = true;
-
-  const container = document.getElementById('top-banner-300x250');
-  if (container) {
-    container.appendChild(script);
-  }
-}, []);
-
+ 
   useEffect(() => {
   const script = document.createElement('script');
   script.src = "https://pl28476233.effectivegatecpm.com/392a0f2efb2128838020802539222d80/invoke.js";
