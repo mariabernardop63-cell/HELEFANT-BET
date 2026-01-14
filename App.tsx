@@ -34,14 +34,7 @@ const App: React.FC = () => {
 
  const [showNativeAd, setShowNativeAd] = useState(false);
 
-  useEffect(() => {
-  const script = document.createElement('script');
-  script.src = "https://pl28476233.effectivegatecpm.com/392a0f2efb2128838020802539222d80/invoke.js";
-  script.async = true;
-  script.setAttribute("data-cfasync", "false");
-  document.body.appendChild(script);
-
-    useEffect(() => {
+   useEffect(() => {
   if ((window as any).topBannerLoaded) return;
   (window as any).topBannerLoaded = true;
 
@@ -63,7 +56,14 @@ const App: React.FC = () => {
   }
 }, []);
 
-  return () => {
+  useEffect(() => {
+  const script = document.createElement('script');
+  script.src = "https://pl28476233.effectivegatecpm.com/392a0f2efb2128838020802539222d80/invoke.js";
+  script.async = true;
+  script.setAttribute("data-cfasync", "false");
+  document.body.appendChild(script);
+
+    return () => {
     document.body.removeChild(script);
   };
 }, []);
