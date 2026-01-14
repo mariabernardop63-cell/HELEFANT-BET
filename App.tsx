@@ -45,6 +45,28 @@ const App: React.FC = () => {
     document.body.removeChild(script);
   };
 }, []);
+
+  useEffect(() => {
+  if ((window as any).topBannerLoaded) return;
+  (window as any).topBannerLoaded = true;
+
+  (window as any).atOptions = {
+    key: 'd824ab38a2213cbba9666b13d565dce7',
+    format: 'iframe',
+    height: 250,
+    width: 300,
+    params: {}
+  };
+
+  const script = document.createElement('script');
+  script.src = 'https://www.highperformanceformat.com/d824ab38a2213cbba9666b13d565dce7/invoke.js';
+  script.async = true;
+
+  const container = document.getElementById('top-banner-300x250');
+  if (container) {
+    container.appendChild(script);
+  }
+}, []);
   
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
