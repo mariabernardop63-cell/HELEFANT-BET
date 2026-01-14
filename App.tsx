@@ -31,11 +31,24 @@ const App: React.FC = () => {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [bgIndex, setBgIndex] = useState(0);
   const [hasSimulatedShare, setHasSimulatedShare] = useState(false);
+
+ const [showNativeAd, setShowNativeAd] = useState(false);
+
+  useEffect(() => {
+  const script = document.createElement('script');
+  script.src = "https://pl28476233.effectivegatecpm.com/392a0f2efb2128838020802539222d80/invoke.js";
+  script.async = true;
+  script.setAttribute("data-cfasync", "false");
+  document.body.appendChild(script);
+
+  return () => {
+    document.body.removeChild(script);
+  };
+}, []);
   
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isAgentTyping, setIsAgentTyping] = useState(false);
-
   useEffect(() => {
     const bgInterval = setInterval(() => {
       setBgIndex((prev) => (prev + 1) % BACKGROUND_IMAGES.length);
@@ -202,15 +215,21 @@ const App: React.FC = () => {
       )}
 
       <main className="w-full max-w-6xl px-4 py-12 flex flex-col items-center min-h-[60vh]">
-        {currentStep === AppStep.FORM && (
-          <>
-            <Stats />
-            <div className="w-full max-w-4xl mt-12 bg-white/[0.02] border border-white/5 p-8 md:p-16 rounded-[4rem] backdrop-blur-3xl shadow-2xl">
-              <StepForm onSubmit={handleFormSubmit} />
-            </div>
-            <div className="w-full mt-32"><Testimonials /></div>
-          </>
-        )}
+       {currentStep === AppStep.FORM && (
+  <>
+    <Stats />
+    <div className="w-full max-w-4xl mt-12 bg-white/[0.02] border border-white/5 p-8 md:p-16 rounded-[4rem] backdrop-blur-3xl shadow-2xl">
+      <StepForm onSubmit={handleFormSubmit} />
+      
+      {/* Native Banner aqui, debaixo do formulário */}
+      <div className="w-full max-w-[320px] mx-auto mt-8 rounded-2xl shadow-lg p-4 border border-gray-300">
+        <div id="container-392a0f2efb2128838020802539222d80"></div>
+      </div>
+    </div>
+    
+    <div className="w-full mt-32"><Testimonials /></div>
+  </>
+)}
         {currentStep === AppStep.WINNERS && <StepWinners onBack={() => setCurrentStep(AppStep.FORM)} />}
         {currentStep === AppStep.EARNINGS && <StepEarnings balance={balance} userData={userData} hasSimulatedShare={hasSimulatedShare} onBack={() => setCurrentStep(AppStep.FORM)} />}
         {currentStep === AppStep.SUPPORT && <SupportChat messages={chatMessages} isTyping={isAgentTyping} onSend={handleSendMessage} onBack={() => setCurrentStep(AppStep.FORM)} />}
