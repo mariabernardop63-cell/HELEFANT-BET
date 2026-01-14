@@ -202,8 +202,7 @@ const App: React.FC = () => {
     {/* BANNER TOPO */}
 <div className="w-full flex justify-center py-4 bg-slate-950">
   <div id="top-banner-300x250"></div>
-</div>
-    
+</div>    
     <div className="min-h-screen flex flex-col items-center bg-slate-950 relative">
       {isInitialLoading && <LoadingOverlay />}
       <Navbar onSupportClick={handleSupportClick} onWinnersClick={() => setCurrentStep(AppStep.WINNERS)} onEarningsClick={() => setCurrentStep(AppStep.EARNINGS)} onHomeClick={() => setCurrentStep(AppStep.FORM)} />
