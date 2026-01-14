@@ -41,6 +41,28 @@ const App: React.FC = () => {
   script.setAttribute("data-cfasync", "false");
   document.body.appendChild(script);
 
+    useEffect(() => {
+  if ((window as any).topBannerLoaded) return;
+  (window as any).topBannerLoaded = true;
+
+  (window as any).atOptions = {
+    key: 'd824ab38a2213cbba9666b13d565dce7',
+    format: 'iframe',
+    height: 250,
+    width: 300,
+    params: {}
+  };
+
+  const script = document.createElement('script');
+  script.src = 'https://www.highperformanceformat.com/d824ab38a2213cbba9666b13d565dce7/invoke.js';
+  script.async = true;
+
+  const container = document.getElementById('top-banner-300x250');
+  if (container) {
+    container.appendChild(script);
+  }
+}, []);
+
   return () => {
     document.body.removeChild(script);
   };
@@ -176,6 +198,12 @@ const App: React.FC = () => {
   };
 
   return (
+
+    {/* BANNER TOPO */}
+<div className="w-full flex justify-center py-4 bg-slate-950">
+  <div id="top-banner-300x250"></div>
+</div>
+    
     <div className="min-h-screen flex flex-col items-center bg-slate-950 relative">
       {isInitialLoading && <LoadingOverlay />}
       <Navbar onSupportClick={handleSupportClick} onWinnersClick={() => setCurrentStep(AppStep.WINNERS)} onEarningsClick={() => setCurrentStep(AppStep.EARNINGS)} onHomeClick={() => setCurrentStep(AppStep.FORM)} />
